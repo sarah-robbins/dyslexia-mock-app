@@ -11,6 +11,8 @@ import {
 } from "@/types";
 import Students from "../Students/Students";
 import LoadingSpinner from "../LoadingSpinner";
+import { TRPCClientError } from "@trpc/client";
+import type { AppRouter } from "@/server/api/root";
 
 // Initialization
 const Meetings = () => {
@@ -51,7 +53,7 @@ const Meetings = () => {
   }) as {
     data: MeetingWithAttendees[];
     isLoading: boolean;
-    error: any;
+    error: TRPCClientError<AppRouter> | null;
   };
 
   const { data: myStudents, isLoading: isLoadingStudents, error: studentsError } = api.students.getStudentsForRole.useQuery(undefined, {
@@ -59,7 +61,7 @@ const Meetings = () => {
   }) as {
     data: Student[];
     isLoading: boolean;
-    error: any;
+    error: TRPCClientError<AppRouter> | null;
   };
 
   // Update State based on API calls

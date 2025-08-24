@@ -27,7 +27,7 @@ import GroupsIcon from "@mui/icons-material/Groups";
 import LeaderboardIcon from "@mui/icons-material/Leaderboard";
 import SettingsIcon from "@mui/icons-material/Settings";
 import { useRouting } from "@/context/RoutingContext";
-import { signOut, useSession } from "next-auth/react";
+// Remove NextAuth import: import { signOut, useSession } from "next-auth/react";
 import { TextField } from "@mui/material";
 import Link from "next/link";
 import { api } from "@/utils/api";
@@ -85,9 +85,12 @@ interface Link {
   icon: string;
 }
 
-const LeftSideNav: React.FC<LeftSideNavProps> = ({ window }) => {
-  const { data: session } = useSession();
+const LeftSideNav: React.FC<LeftSideNavProps> = () => {
   const { setRoute } = useRouting();
+
+  // Get current user data from tRPC context (this will use the selected user from UserSelector)
+  const { data: currentUser } = api.users.getCurrentUser.useQuery();
+  const updateUserMutation = api.users.updateUser.useMutation();
 
   const formatPhoneForDisplay = (phoneNumber: string): string => {
     const numbers = phoneNumber.replace(/\D/g, "").substring(0, 10);
@@ -101,16 +104,17 @@ const LeftSideNav: React.FC<LeftSideNavProps> = ({ window }) => {
   };
 
   const [phone, setPhone] = useState<string>("");
-
-  const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(
-    null
-  );
+  const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
+  
+  // Since phone is not in session context, we need to fetch it from the database
+  const { data: fullUserData } = api.users.getAllUsers.useQuery();
+  const currentUserWithPhone = fullUserData?.find(user => user.id === currentUser?.userId);
   
   useEffect(() => {
-    if (session?.user?.phone) {
-      setPhone(formatPhoneForDisplay(session.user.phone));
+    if (currentUserWithPhone?.phone) {
+      setPhone(formatPhoneForDisplay(currentUserWithPhone.phone));
     }
-  }, [session]);
+  }, [currentUserWithPhone]);
   
   // const drawerRef = React.useRef<HTMLDivElement>(null);
 
@@ -150,17 +154,16 @@ const LeftSideNav: React.FC<LeftSideNavProps> = ({ window }) => {
     SettingsIcon: SettingsIcon,
   };
 
-  const roles =
-    session?.user?.role?.split(",").map((role) => role.trim()) || [];
+  const roles = currentUser?.role?.split(",").map((role: string) => role.trim()) || [];
 
   const filteredLinks = useMemo(() => {
     return links.filter(link => {
-    if (link.text === "Meetings") return session?.user.role === "Tutor" || roles.includes("Tutor");
-    if (link.text === "Students") return session?.user.role === "Principal" || session?.user.role === "Admin" || roles.includes("Principal") || roles.includes("Admin");
-    if (link.text === "Users") return session?.user.role === "Admin" || roles.includes("Admin");
-    return true;
-  });
-  }, [links, session?.user.role]);
+      if (link.text === "Meetings") return currentUser?.role === "Tutor" || roles.includes("Tutor");
+      if (link.text === "Students") return currentUser?.role === "Principal" || currentUser?.role === "Admin" || roles.includes("Principal") || roles.includes("Admin");
+      if (link.text === "Users") return currentUser?.role === "Admin" || roles.includes("Admin");
+      return true;
+    });
+  }, [links, currentUser?.role]);
 
   useEffect(() => {
     const storedView = localStorage.getItem("currentRoute");
@@ -184,9 +187,7 @@ const LeftSideNav: React.FC<LeftSideNavProps> = ({ window }) => {
       });
     }
   }, []);
-  
-  const updateUserMutation = api.users.updateUser.useMutation();
-  
+
   const handlePhoneChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = event.target.value;
     const numbers = inputValue.replace(/\D/g, "");
@@ -196,8 +197,8 @@ const LeftSideNav: React.FC<LeftSideNavProps> = ({ window }) => {
   const toast = useRef<Toast>(null);
 
   const handleSavePhone = () => {
-    if (session && session.user.userId) {
-      const userId = Number(session.user.userId);
+    if (currentUser && currentUser.userId) {
+      const userId = Number(currentUser.userId);
       const phoneToSave = phone.replace(/\D/g, "");
       if (!isNaN(userId) && phoneToSave.length === 10) {
         updateUserMutation.mutate(
@@ -319,7 +320,7 @@ const LeftSideNav: React.FC<LeftSideNavProps> = ({ window }) => {
         inputProps={{ maxLength: 14 }}
       />
       <TextField
-        value={session ? session.user.email : ""}
+        value={currentUser?.email || ""}
         disabled
         label="Email"
         className="w-12"
@@ -332,10 +333,12 @@ const LeftSideNav: React.FC<LeftSideNavProps> = ({ window }) => {
           variant="outlined"
           color="primary"
           onClick={() => {
-            void signOut({ callbackUrl: "/" });
+            // Clear the selected user and redirect to home
+            localStorage.removeItem('demoUserId');
+            window.location.href = '/';
           }}
         >
-          Logout
+          Switch User
         </Button>
       </div>
     </div>
@@ -377,12 +380,12 @@ const LeftSideNav: React.FC<LeftSideNavProps> = ({ window }) => {
             <div className="text-right mr-2 hidden md:flex flex-column">
               <Typography variant="h6" noWrap component="div">
                 <Box sx={{ lineHeight: "1" }} className="mb-1">
-                  {session ? session.user.name : ""}
+                  {currentUser ? `${currentUser.first_name} ${currentUser.last_name}` : ""}
                 </Box>
               </Typography>
               <Typography variant="subtitle2" noWrap component="div">
                 <Box sx={{ lineHeight: "1" }}>
-                  {capitalizeEachWord(session ? session.user.role : "")}
+                  {capitalizeEachWord(currentUser?.role || "")}
                 </Box>
               </Typography>
             </div>
@@ -396,7 +399,7 @@ const LeftSideNav: React.FC<LeftSideNavProps> = ({ window }) => {
                 className="user-button"
               >
                 <Avatar
-                  alt={session ? (session.user.name as string) : ""}
+                  alt={currentUser ? `${currentUser.first_name} ${currentUser.last_name}` : ""}
                   src="/"
                   className="navbar-avatar ml-2 mr-2"
                   variant="rounded"

@@ -1,6 +1,6 @@
 // import { type Session } from "next-auth";
-import { type customSession } from "@/types";
-import { SessionProvider } from "next-auth/react";
+// import { type customSession } from "@/types";
+// import { SessionProvider } from "next-auth/react";
 import { type AppType } from "next/app";
 import { api } from "@/utils/api";
 import "@/styles/globals.css";
@@ -24,9 +24,9 @@ const ColorModeContext = React.createContext({
   },
 });
 
-const MyApp: AppType<{ session: customSession | null }> = ({
+const MyApp: AppType = ({
   Component,
-  pageProps: { session, ...pageProps },
+  pageProps,
 }) => {
   const [mode, setMode] = React.useState<"light" | "dark">("dark");
   const colorMode = React.useMemo(
@@ -56,7 +56,6 @@ const MyApp: AppType<{ session: customSession | null }> = ({
   return (
     <React.StrictMode>
       <ColorModeContext.Provider value={colorMode}>
-        <SessionProvider session={session}>
           <RoutingProvider>
             <MuiThemeProvider
               theme={mode === "light" ? darkThemeChosen : lightThemeChosen}
@@ -64,7 +63,6 @@ const MyApp: AppType<{ session: customSession | null }> = ({
               <Component {...pageProps} />
             </MuiThemeProvider>
           </RoutingProvider>
-        </SessionProvider>
       </ColorModeContext.Provider>
     </React.StrictMode>
   );

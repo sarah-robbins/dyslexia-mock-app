@@ -10,14 +10,10 @@ import {
   type MeetingWithAttendees,
 } from "@/types";
 import Students from "../Students/Students";
-import { useSession } from "next-auth/react";
-// import { useSession } from "next-auth/react";
 
 // Initialization
 const Meetings = () => {
-  const { data: session } = useSession();
-  const sessionData = session?.user;
-  const tutorId = sessionData?.userId || 0;
+  const tutorId = 1;
   // State Management
   const [meetings, setMeetings] = useState<MeetingWithAttendees[]>([]);
   const [allMeetings, setAllMeetings] = useState<MeetingWithAttendees[]>([]);

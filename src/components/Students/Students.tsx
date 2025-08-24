@@ -46,7 +46,7 @@ import Button from "@mui/material/Button";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { type Dayjs } from "dayjs";
-import { useSession } from "next-auth/react";
+// Remove NextAuth import: import { useSession } from "next-auth/react";
 import { Skeleton } from "primereact/skeleton";
 import MeetingForm from "@/components/Meetings/MeetingForm/MeetingForm";
 import MeetingList from "@/components/Meetings/MeetingList/MeetingList";
@@ -82,8 +82,9 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
   } else if (!isOnMeetingsPage) {
     hiddenOnMeetingsPage = "flex";
   }
-  const { data: session } = useSession();
-  const sessionData = session?.user;
+  // Use the new getCurrentUser approach
+  const { data: currentUser } = api.users.getCurrentUser.useQuery();
+  const sessionData = currentUser;
   const [open, setOpen] = React.useState(false);
   const handleOpen = () => setOpen(true);
   const [runSuccessToast, setRunSuccessToast] = React.useState(false);
@@ -105,7 +106,9 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
     DataTableExpandedRows | DataTableValueArray | undefined
   >(undefined);
   const toast = useRef<Toast>(null);
-  const appSettings = (session as customSession)?.appSettings;
+  // Get app settings from the settings API
+  const { data: allSettings } = api.settings.getAllSettings.useQuery();
+  const appSettings = allSettings?.[0]; // Get first settings record
   const [filters, setFilters] = useState<DataTableFilterMeta>({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS },
     first_name: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -445,7 +448,7 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
     return (
       <Dropdown
         value={value}
-        options={appSettings.school_options}
+        options={appSettings?.school_options || []}
         className={isError ? "input-error" : ""}
         onChange={(e: DropdownChangeEvent) => {
           options.editorCallback?.(e.value);
@@ -467,7 +470,7 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
     return (
       <Dropdown
         value={value}
-        options={appSettings.grade_options}
+        options={appSettings?.grade_options || []}
         className={isError ? "input-error" : ""}
         onChange={(e: DropdownChangeEvent) => {
           options.editorCallback?.(e.value);
@@ -488,7 +491,7 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
     return (
       <Dropdown
         value={value}
-        options={appSettings.program_options}
+        options={appSettings?.program_options || []}
         onChange={(e: DropdownChangeEvent) => {
           options.editorCallback?.(e.value);
         }}
@@ -522,7 +525,7 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
     return (
       <MultiSelect
         value={currentValue}
-        options={appSettings.services_options.map((service) => ({
+        options={(appSettings?.services_options || []).map((service) => ({
           label: service,
           value: service,
         }))}
@@ -963,7 +966,7 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
                 label="Beginning Level/Lesson"
                 className="w-12"
                 inputProps={{
-                  readOnly: !session?.user.role
+                  readOnly: !currentUser?.role
                     .split(",")
                     .map((role) => role.trim())
                     .some((role) => ["Admin", "Principal"].includes(role)),
@@ -985,7 +988,7 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
                   value={dayjs(data.date_intervention_began)}
                   onChange={handleInterventionDateChange}
                   readOnly={
-                    !session?.user.role
+                    !currentUser?.role
                       .split(",")
                       .map((role) => role.trim())
                       .some((role) => ["Admin", "Principal"].includes(role))
@@ -1002,7 +1005,7 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
                       handleSwitchChange("new_student", e.target.checked)
                     }
                     inputProps={{
-                      disabled: !session?.user.role
+                      disabled: !currentUser?.role
                         .split(",")
                         .map((role) => role.trim())
                         .some((role) => ["Admin", "Principal"].includes(role)),
@@ -1019,7 +1022,7 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
                       handleSwitchChange("withdrew", e.target.checked)
                     }
                     inputProps={{
-                      disabled: !session?.user.role
+                      disabled: !currentUser?.role
                         .split(",")
                         .map((role) => role.trim())
                         .some((role) => ["Admin", "Principal"].includes(role)),
@@ -1036,7 +1039,7 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
                       handleSwitchChange("graduated", e.target.checked)
                     }
                     inputProps={{
-                      disabled: !session?.user.role
+                      disabled: !currentUser?.role
                         .split(",")
                         .map((role) => role.trim())
                         .some((role) => ["Admin", "Principal"].includes(role)),
@@ -1053,7 +1056,7 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
                       handleSwitchChange("moved", e.target.checked)
                     }
                     inputProps={{
-                      disabled: !session?.user.role
+                      disabled: !currentUser?.role
                         .split(",")
                         .map((role) => role.trim())
                         .some((role) => ["Admin", "Principal"].includes(role)),
@@ -1075,10 +1078,11 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
                 label="Location Moved To"
                 className="w-12"
                 inputProps={{
-                  readOnly: !session?.user.role
-                    .split(",")
-                    .map((role) => role.trim())
-                    .some((role) => ["Admin", "Principal"].includes(role)),
+                  readOnly:
+                    !currentUser?.role
+                      .split(",")
+                      .map((role) => role.trim())
+                      .some((role) => ["Admin", "Principal"].includes(role)),
                 }}
               />
             </div>
@@ -1103,7 +1107,7 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
               className="w-12"
               multiline
               inputProps={{
-                readOnly: !session?.user.role
+                readOnly: !currentUser?.role
                   .split(",")
                   .map((role) => role.trim())
                   .some((role) => ["Admin", "Principal"].includes(role)),
@@ -1412,7 +1416,7 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
       <div className="flex flex-row justify-content-between">
         <div className="flex justify-content-start">
           <div className="flex align-items-center gap-2">
-            {session?.user.role !== "Tutor" && (
+            {currentUser?.role !== "Tutor" && (
               <Button onClick={handleOpen} variant="contained">
                 Add
               </Button>
@@ -1536,7 +1540,7 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
   return (
     <>
       <AddStudentForm
-        session={session}
+        session={currentUser}
         users={users}
         setUsers={setUsers}
         students={students}
@@ -1658,7 +1662,7 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
             editor={(options) => serviceEditor(options)}
             sortable
           />
-          {session?.user.role !== "Tutor" && (
+          {currentUser?.role !== "Tutor" && (
             <Column
               header="Actions"
               rowEditor

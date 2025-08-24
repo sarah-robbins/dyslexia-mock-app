@@ -26,7 +26,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import CreateIcon from "@mui/icons-material/Create";
 import CloseIcon from "@mui/icons-material/Close";
 import CheckIcon from "@mui/icons-material/Check";
-import { useSession } from "next-auth/react";
+// Remove NextAuth import: import { useSession } from "next-auth/react";
 // import { Button } from "primereact/button";
 import Button from "@mui/material/Button";
 import AddUserForm from "../AddUserForm";
@@ -50,8 +50,10 @@ const Users: React.FC = () => {
   }, [runSuccessToast]);
 
   const [users, setUsers] = useState<User[]>([]);
-  const { data: session } = useSession();
-  const appSettings = (session as customSession)?.appSettings;
+  // Use the new getCurrentUser and settings approach
+  const { data: currentUser } = api.users.getCurrentUser.useQuery();
+  const { data: allSettings } = api.settings.getAllSettings.useQuery();
+  const appSettings = allSettings?.[0]; // Get first settings record
   const [filters, setFilters] = useState<DataTableFilterMeta>({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS },
     first_name: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -381,7 +383,7 @@ const Users: React.FC = () => {
     return (
       <div className="flex justify-content-between">
         <div className="flex align-items-center">
-          {session?.user.role !== "Tutor" && (
+          {currentUser?.role !== "Tutor" && (
             <Button onClick={handleOpen} variant="contained">
               Add
             </Button>
@@ -539,7 +541,7 @@ const Users: React.FC = () => {
     return (
       <MultiSelect
         value={currentValue}
-        options={appSettings.school_options.map((school) => ({
+        options={(appSettings?.school_options || []).map((school) => ({
           label: school,
           value: school,
         }))}
@@ -642,7 +644,7 @@ const Users: React.FC = () => {
     return (
       <MultiSelect
         value={currentValue}
-        options={appSettings.user_role_options.map((role) => ({
+        options={(appSettings?.user_role_options || []).map((role) => ({
           label: role,
           value: role,
         }))}
@@ -672,7 +674,7 @@ const Users: React.FC = () => {
     return (
       <Dropdown
         value={value}
-        options={appSettings.initial_view_options}
+        options={appSettings?.initial_view_options || []}
         onChange={(e: DropdownChangeEvent) => {
           options.editorCallback?.(e.value);
         }}
@@ -689,7 +691,7 @@ const Users: React.FC = () => {
   return (
     <>
       <AddUserForm
-        session={session}
+        session={currentUser}
         users={users}
         setUsers={setUsers}
         open={open}

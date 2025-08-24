@@ -10,7 +10,7 @@ import Checkbox from "@mui/material/Checkbox";
 import TextField from "@mui/material/TextField";
 import InputLabel from "@mui/material/InputLabel";
 import type { Student, User, customSession } from "@/types";
-import { type Session } from "next-auth";
+// Remove NextAuth import: import { type Session } from "next-auth";
 import { api } from "@/utils/api";
 import { type Toast } from "primereact/toast";
 import CloseIcon from "@mui/icons-material/Close";
@@ -72,7 +72,7 @@ interface formValues {
 }
 
 interface Props {
-  session: Session | null;
+  session: any; // Keep for compatibility but will use currentUser instead
   users: User[];
   setUsers: (users: User[]) => void;
   students: Student[];
@@ -83,21 +83,26 @@ interface Props {
   setRunSuccessToast: (runSuccessToast: boolean) => void;
 }
 
-const isCustomSession = (session: Session | null): session is customSession => {
-  return (
-    session !== null && typeof session === "object" && "appSettings" in session
-  );
-};
+// Remove old session type guard - no longer needed with new API approach
+// const isCustomSession = (session: Session | null): session is customSession => {
+//   return (
+//     session !== null && typeof session === "object" && "appSettings" in session
+//   );
+// };
 
 const AddStudentForm: React.FC<Props> = ({
   session,
   users,
-  // setUsers,
+  setUsers,
   students,
   open,
   setOpen,
   setRunSuccessToast,
 }) => {
+  // Use the new getCurrentUser and settings approach
+  const { data: currentUser } = api.users.getCurrentUser.useQuery();
+  const { data: allSettings } = api.settings.getAllSettings.useQuery();
+  const appSettings = allSettings?.[0]; // Get first settings record
   const toast = useRef<Toast>(null);
   const handleClose = () => {
     setOpen(false),
@@ -192,15 +197,13 @@ const AddStudentForm: React.FC<Props> = ({
 
   // Generate options based on the user role
   let schoolOptions: string[];
-  if (session?.user.role.toLowerCase().includes("admin")) {
-    schoolOptions = (
-      session as customSession
-    )?.appSettings.school_options.sort();
-  } else if (session?.user.role.toLowerCase().includes("principal")) {
-    schoolOptions = session.user.school
-      .split(",")
+  if (currentUser?.role?.toLowerCase().includes("admin")) {
+    schoolOptions = appSettings?.school_options?.sort() || [];
+  } else if (currentUser?.role?.toLowerCase().includes("principal")) {
+    schoolOptions = currentUser.school
+      ?.split(",")
       .map((school) => school.trim())
-      .sort();
+      .sort() || [];
   } else {
     schoolOptions = []; // Ensure there's always a fallback
   }
@@ -221,8 +224,8 @@ const AddStudentForm: React.FC<Props> = ({
 
   // Generate options based on the user role
   let gradeOptions: string[];
-  if ((session as customSession)?.appSettings.grade_options) {
-    gradeOptions = (session as customSession)?.appSettings.grade_options;
+  if (appSettings?.grade_options) {
+    gradeOptions = appSettings.grade_options;
   } else {
     gradeOptions = []; // Ensure there's always a fallback
   }
@@ -405,7 +408,7 @@ const AddStudentForm: React.FC<Props> = ({
     });
   };
 
-  if (!session || !isCustomSession(session)) {
+  if (!currentUser || !appSettings) {
     return null;
   }
   return (
@@ -540,7 +543,7 @@ const AddStudentForm: React.FC<Props> = ({
                 checkFormValidity(formValues);
               }}
             >
-              {session.appSettings.program_options.sort().map((program) => (
+              {(appSettings?.program_options || []).sort().map((program) => (
                 <MenuItem key={program} value={program}>
                   <ListItemText primary={program} />
                 </MenuItem>
@@ -611,7 +614,7 @@ const AddStudentForm: React.FC<Props> = ({
                 checkFormValidity(formValues);
               }}
             >
-              {session.appSettings.services_options.sort().map((service) => (
+              {(appSettings?.services_options || []).sort().map((service) => (
                 <MenuItem key={service} value={service}>
                   <Checkbox checked={studentServices.indexOf(service) > -1} />
                   <ListItemText primary={service} />

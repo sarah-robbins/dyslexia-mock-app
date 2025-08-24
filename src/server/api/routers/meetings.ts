@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import {
   createTRPCRouter,
-  protectedProcedure,
   publicProcedure,
 } from '@/server/api/trpc';
 import { TRPCError } from '@trpc/server';
@@ -15,7 +14,7 @@ export const meetingsRouter = createTRPCRouter({
     });
   }),
 
-  getMeetingsForRole: protectedProcedure.query(async ({ ctx }) => {
+  getMeetingsForRole: publicProcedure.query(async ({ ctx }) => {
     // const userRole = ctx.session?.user?.role;
     const userRoles = ctx.session?.user?.role?.split(',').map(role => role.trim().toLowerCase()) || [];
     const tutorId = ctx.session?.user?.userId;

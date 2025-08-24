@@ -25,7 +25,7 @@ import type {
   // Meeting,
 } from "@/types";
 import { OutlinedInput } from "@mui/material";
-import { useSession } from "next-auth/react";
+// Remove NextAuth import: import { useSession } from "next-auth/react";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 dayjs.extend(utc);
@@ -102,8 +102,9 @@ const MeetingForm: React.FC<Props> = ({
   isOnStudentsPage,
   studentId,
 }) => {
-  const { data: session } = useSession();
-  const sessionData = session?.user;
+  // Use the new getCurrentUser approach
+  const { data: currentUser } = api.users.getCurrentUser.useQuery();
+  const sessionData = currentUser;
 
   const toast = useRef<Toast>(null);
   const toastDelete = useRef<Toast>(null);
@@ -395,20 +396,20 @@ const MeetingForm: React.FC<Props> = ({
     setIndividualStatuses(initialStatuses);
   }, [selectedMeetings]);
 
-  const isAdmin = session?.user.role
-    .split(",")
+  const isAdmin = currentUser?.role
+    ?.split(",")
     .map((role) => role.trim())
-    .includes("Admin");
+    .includes("Admin") ?? false;
 
-  const isPrincipal = session?.user.role
-    .split(",")
+  const isPrincipal = currentUser?.role
+    ?.split(",")
     .map((role) => role.trim())
-    .includes("Principal");
+    .includes("Principal") ?? false;
 
-  const isTutor = session?.user.role
-    .split(",")
+  const isTutor = currentUser?.role
+    ?.split(",")
     .map((role) => role.trim())
-    .includes("Tutor");
+    .includes("Tutor") ?? false;
 
   const renderStatusSelects = () => {
     return selectedNames.map((studentName) => {
@@ -481,7 +482,7 @@ const MeetingForm: React.FC<Props> = ({
     if (isOnMeetingsPage) {
       const filteredStudents = students.filter(
         (student) =>
-          student.tutor_id === session?.user?.userId &&
+          student.tutor_id === currentUser?.userId &&
           !student.withdrew &&
           !student.moved &&
           !student.graduated
@@ -736,7 +737,7 @@ const MeetingForm: React.FC<Props> = ({
       program: formValues.program ?? "",
       level_lesson: formValues.level_lesson ?? "",
       meeting_notes: formValues.meeting_notes ?? "",
-      recorded_by: sessionData?.userId.toString() ?? "",
+      recorded_by: sessionData?.userId?.toString() ?? "",
       recorded_on: dayjs.utc().toDate(),
       tutor_id: sessionData?.userId || 0,
       attendees: validAttendees,
@@ -835,7 +836,7 @@ const MeetingForm: React.FC<Props> = ({
       program: formValues.program ?? "",
       level_lesson: formValues.level_lesson ?? "",
       meeting_notes: formValues.meeting_notes ?? "",
-      edited_by: sessionData?.userId.toString() ?? "",
+      edited_by: sessionData?.userId?.toString() ?? "",
       edited_on: new Date(),
       tutor_id: sessionData?.userId || 0,
       attendees: selectedNames.map((name) => {
@@ -1057,8 +1058,8 @@ const MeetingForm: React.FC<Props> = ({
 
   let hiddenButtonClass = "hidden"; // Default to hidden
 
-  if (isOnMeetingsPage && session?.user.role) {
-    const roles = session?.user?.role
+  if (isOnMeetingsPage && currentUser?.role) {
+    const roles = currentUser?.role
       ?.split(",")
       .sort()
       .map((role) => role.trim());
@@ -1069,8 +1070,8 @@ const MeetingForm: React.FC<Props> = ({
     }
   }
 
-  if (isOnStudentsPage && session?.user.role) {
-    const roles = session?.user?.role
+  if (isOnStudentsPage && currentUser?.role) {
+    const roles = currentUser?.role
       ?.split(",")
       .sort()
       .map((role) => role.trim());
@@ -1083,8 +1084,8 @@ const MeetingForm: React.FC<Props> = ({
 
   let hiddenFieldClass = "hidden"; // Default to hidden
 
-  if (isOnMeetingsPage && session?.user.role) {
-    const roles = session?.user?.role
+  if (isOnMeetingsPage && currentUser?.role) {
+    const roles = currentUser?.role
       ?.split(",")
       .sort()
       .map((role) => role.trim());
@@ -1095,8 +1096,8 @@ const MeetingForm: React.FC<Props> = ({
     }
   }
 
-  if (isOnStudentsPage && session?.user.role) {
-    const roles = session?.user?.role
+  if (isOnStudentsPage && currentUser?.role) {
+    const roles = currentUser?.role
       ?.split(",")
       .sort()
       .map((role) => role.trim());

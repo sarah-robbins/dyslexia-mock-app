@@ -10,7 +10,7 @@ import Checkbox from "@mui/material/Checkbox";
 import TextField from "@mui/material/TextField";
 import InputLabel from "@mui/material/InputLabel";
 import type { User, customSession } from "@/types";
-import { type Session } from "next-auth";
+// Remove NextAuth import: import { type Session } from "next-auth";
 import { api } from "@/utils/api";
 import { type Toast } from "primereact/toast";
 import CloseIcon from "@mui/icons-material/Close";
@@ -51,7 +51,7 @@ interface FormValues {
 }
 
 interface Props {
-  session: Session | null;
+  session: any; // Keep for compatibility but will use currentUser instead
   users: User[];
   setUsers: (users: User[]) => void;
   open: boolean;
@@ -60,11 +60,12 @@ interface Props {
   setRunSuccessToast: (runSuccessToast: boolean) => void;
 }
 
-const isCustomSession = (session: Session | null): session is customSession => {
-  return (
-    session !== null && typeof session === "object" && "appSettings" in session
-  );
-};
+// Remove old session type guard - no longer needed with new API approach
+// const isCustomSession = (session: Session | null): session is customSession => {
+//   return (
+//     session !== null && typeof session === "object" && "appSettings" in session
+//   );
+// };
 
 const AddUserForm: React.FC<Props> = ({
   session,
@@ -73,6 +74,10 @@ const AddUserForm: React.FC<Props> = ({
   setOpen,
   setRunSuccessToast,
 }) => {
+  // Use the new getCurrentUser and settings approach
+  const { data: currentUser } = api.users.getCurrentUser.useQuery();
+  const { data: allSettings } = api.settings.getAllSettings.useQuery();
+  const appSettings = allSettings?.[0]; // Get first settings record
   const toast = useRef<Toast>(null);
   const handleClose = () => {
     setOpen(false);
@@ -242,7 +247,7 @@ const AddUserForm: React.FC<Props> = ({
     }));
   };
 
-  if (!session || !isCustomSession(session)) {
+  if (!currentUser || !appSettings) {
     return null;
   }
   return (
@@ -298,7 +303,7 @@ const AddUserForm: React.FC<Props> = ({
               MenuProps={MenuProps}
               error={touchedFields.school && !formValues.school}
             >
-              {session.appSettings.school_options.sort().map((school) => (
+              {(appSettings?.school_options || []).sort().map((school) => (
                 <MenuItem key={school} value={school}>
                   <Checkbox checked={userSchools.indexOf(school) > -1} />
                   <ListItemText primary={school} />
@@ -336,7 +341,7 @@ const AddUserForm: React.FC<Props> = ({
               renderValue={(selected) => selected.join(", ")}
               error={touchedFields.role && !formValues.role}
             >
-              {session.appSettings.user_role_options.sort().map((role) => (
+              {(appSettings?.user_role_options || []).sort().map((role) => (
                 <MenuItem key={role} value={role}>
                   <Checkbox checked={userRoles.indexOf(role) > -1} />
                   <ListItemText primary={role} />
@@ -353,7 +358,7 @@ const AddUserForm: React.FC<Props> = ({
               onBlur={() => setTouchedFields((prev) => ({ ...prev, view: true }))}
               error={touchedFields.view && !formValues.view}
             >
-              {session.appSettings.initial_view_options.sort().map((view) => (
+              {(appSettings?.initial_view_options || []).sort().map((view) => (
                 <MenuItem key={view} value={view}>
                   <ListItemText primary={view} />
                 </MenuItem>

@@ -2,9 +2,15 @@ import { z } from 'zod';
 import {   createTRPCRouter,
   publicProcedure,
   protectedProcedure,
- } from '@/server/api/trpc';
+} from '@/server/api/trpc';
 
 export const usersRouter = createTRPCRouter({
+  // Add this new endpoint to get current user from session context
+  getCurrentUser: publicProcedure.query(({ ctx }) => {
+    // Return the user data from the session context (already constructed in trpc.ts)
+    return ctx.session?.user || null;
+  }),
+
   //get all users
   getAllUsers: publicProcedure.query(async ({ ctx }) => {
     return await ctx.prisma.users.findMany({
@@ -31,11 +37,11 @@ export const usersRouter = createTRPCRouter({
     const userSchool = ctx.session?.user?.school;
 
     let highestPriorityRole = '';
-    if (userRole.toLowerCase().includes('admin')) {
+    if (userRole?.toLowerCase().includes('admin')) {
       highestPriorityRole = 'admin';
-    } else if (userRole.toLowerCase().includes('principal')) {
+    } else if (userRole?.toLowerCase().includes('principal')) {
       highestPriorityRole = 'principal';
-    } else if (userRole.toLowerCase().includes('tutor')) {
+    } else if (userRole?.toLowerCase().includes('tutor')) {
       highestPriorityRole = 'tutor';
     }
     switch (highestPriorityRole) {
@@ -51,13 +57,13 @@ export const usersRouter = createTRPCRouter({
         const allUsers = await ctx.prisma.users.findMany();
 
         // Split the session user's school value
-        const sessionUserSchools = userSchool.split(',').map(s => s.trim());
+        const sessionUserSchools = userSchool?.split(',').map(s => s.trim());
   
         // Find users that have a matching school
         const matchingUsers = allUsers.filter(user => {
           if (user.school) {
           const userSchools = user.school.split(',').map(s => s.trim());
-          return sessionUserSchools.some(school => userSchools.includes(school));
+          return sessionUserSchools?.some(school => userSchools.includes(school));
           }
           return false;
         });

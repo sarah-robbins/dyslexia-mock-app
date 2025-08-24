@@ -52,7 +52,14 @@ const createInnerTRPCContext = async (opts: CreateContextOptions) => {
 export const createTRPCContext = async (opts: CreateNextContextOptions) => {
   // Get userId from headers or query params
   const userId = opts.req.headers['x-demo-user-id'] || opts.req.query.userId;
-  const parsedUserId = userId ? parseInt(userId as string) : undefined;
+  let parsedUserId = userId ? parseInt(userId as string) : undefined;
+  
+  // TEMPORARY: Hardcode user ID for testing
+  if (!parsedUserId) {
+    parsedUserId = 1; // Change this to a valid user ID from your database
+  }
+  
+  console.log('tRPC Context - using userId:', parsedUserId);
   
   return await createInnerTRPCContext({ userId: parsedUserId });
 };

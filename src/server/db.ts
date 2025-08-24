@@ -1,16 +1,24 @@
-import { PrismaClient } from "@prisma/client";
-import { env } from "@/env.mjs";
+// Add this to your db.ts file
+import { PrismaClient } from '@prisma/client';
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-export const prisma =
-  globalForPrisma.prisma ??
+export const prisma = globalForPrisma.prisma ??
   new PrismaClient({
-    log:
-      env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-    // log: ['query', 'info', 'warn', 'error'],
+    log: ['query'],
+    // Add connection pool settings
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL,
+      },
+    },
   });
 
-if (env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+
+// Add connection cleanup
+process.on('beforeExit', async () => {
+  await prisma.$disconnect();
+});

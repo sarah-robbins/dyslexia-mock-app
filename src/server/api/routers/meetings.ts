@@ -427,15 +427,25 @@ export const meetingsRouter = createTRPCRouter({
   getMeetingsByRoleAndDate: publicProcedure
     .input(z.date())
     .query(async ({ ctx, input }) => {
+      // Check if session exists first
+      if (!ctx.session?.user) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'No session found' });
+      }
+  
       // Date filtering logic
       const startDate = new Date(input);
       startDate.setHours(0, 0, 0, 0);
       const endDate = new Date(input);
       endDate.setHours(23, 59, 59, 999);
-      const userRole = ctx.session?.user?.role;
-      const tutorId = ctx.session?.user?.userId;
-      const userSchool = ctx.session?.user?.school;
-    
+      const userRole = ctx.session.user.role;
+      const tutorId = ctx.session.user.userId;
+      const userSchool = ctx.session.user.school;
+  
+      // Add null checks
+      if (!userRole) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'No role found in session' });
+      }
+
       // Convert roles to a ranked list (higher index = higher priority)
       const rolesHierarchy = ['tutor', 'principal', 'admin'];
       const highestRole = rolesHierarchy.find(role => userRole?.toLowerCase().includes(role));

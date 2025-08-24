@@ -10,11 +10,12 @@ import {
   type MeetingWithAttendees,
 } from "@/types";
 import Students from "../Students/Students";
+import LoadingSpinner from "../LoadingSpinner";
 
 // Initialization
 const Meetings = () => {
   // Get current user data immediately
-  const { data: currentUser } = api.users.getCurrentUser.useQuery();
+  const { data: currentUser, isLoading: isLoadingUser, error: userError } = api.users.getCurrentUser.useQuery();
   const tutorId = currentUser?.userId || 1; // Fallback to 1 if no user found
   // State Management
   const [meetings, setMeetings] = useState<MeetingWithAttendees[]>([]);
@@ -39,22 +40,26 @@ const Meetings = () => {
   const dateToQuery = selectedDate && dayjs.isDayjs(selectedDate) ? selectedDate : dayjs();
 
   // API Calls - only make calls when we have a valid tutorId
-  const { data: getAllMeetings } = api.meetings.getMeetingsByTutorId.useQuery({
+  const { data: getAllMeetings, isLoading: isLoadingAllMeetings, error: allMeetingsError } = api.meetings.getMeetingsByTutorId.useQuery({
     tutor_id: tutorId
   }, {
     enabled: !!tutorId && !!currentUser // Only fetch when user is loaded
   });
 
-  const {data: getDatedMeetings} = api.meetings.getMeetingsByRoleAndDate.useQuery(dateToQuery.toDate(), {
+  const {data: getDatedMeetings, isLoading: isLoadingDatedMeetings, error: datedMeetingsError} = api.meetings.getMeetingsByRoleAndDate.useQuery(dateToQuery.toDate(), {
     enabled: !!currentUser // Only fetch when user is loaded
   }) as {
     data: MeetingWithAttendees[];
+    isLoading: boolean;
+    error: any;
   };
 
-  const { data: myStudents } = api.students.getStudentsForRole.useQuery(undefined, {
+  const { data: myStudents, isLoading: isLoadingStudents, error: studentsError } = api.students.getStudentsForRole.useQuery(undefined, {
     enabled: !!currentUser // Only fetch when user is loaded
   }) as {
     data: Student[];
+    isLoading: boolean;
+    error: any;
   };
 
   // Update State based on API calls
@@ -80,6 +85,38 @@ const Meetings = () => {
     }
   }, [getAllMeetings]);
 
+  // Loading and error states
+  const isInitialLoading = isLoadingUser;
+  const isDataLoading = isLoadingAllMeetings || isLoadingDatedMeetings || isLoadingStudents;
+  const hasErrors = userError || allMeetingsError || datedMeetingsError || studentsError;
+
+  // Show initial loading screen while user data loads
+  if (isInitialLoading) {
+    return (
+      <div className="flex flex-column justify-content-center gap-4">
+        <LoadingSpinner 
+          variant="card" 
+          message="Loading user data..." 
+          height="400px"
+        />
+      </div>
+    );
+  }
+
+  // Show error state if any critical errors occurred
+  if (hasErrors) {
+    return (
+      <div className="flex flex-column justify-content-center gap-4">
+        <div className="p-4 border-round bg-red-50 border-red-200">
+          <h3 className="text-red-800 mt-0">Error Loading Data</h3>
+          <p className="text-red-600 mb-0">
+            {userError?.message || allMeetingsError?.message || datedMeetingsError?.message || studentsError?.message || 'An unexpected error occurred while loading data.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // Render Components
   return (
     <div className="flex flex-column justify-content-center gap-4">
@@ -92,47 +129,75 @@ const Meetings = () => {
       />
       </div>
       <div className="flex">
-      <MeetingCalendar
-        allMeetings={allMeetings}
-        selectedDate={selectedDate}
-        setSelectedDate={setSelectedDate}
-        uniqueKey={uniqueKey}
-        viewDate={viewDate}
-        setViewDate={setViewDate}
-      />
+        {isLoadingAllMeetings ? (
+          <LoadingSpinner 
+            variant="skeleton" 
+            className="w-full"
+          />
+        ) : (
+          <MeetingCalendar
+            allMeetings={allMeetings || []}
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
+            uniqueKey={uniqueKey}
+            viewDate={viewDate}
+            setViewDate={setViewDate}
+          />
+        )}
       </div>
       <div className="flex flex-column lg:flex-row gap-4">
-        <MeetingForm
-          meetings={meetings}
-          setAllMeetings={setAllMeetings}
-          setMeetings={setMeetings}
-          students={students}
-          myDatedMeetings={myDatedMeetings}
-          setMyDatedMeetings={setMyDatedMeetings}
-          selectedMeetings={selectedMeetings}
-          setSelectedMeetings={setSelectedMeetings}
-          selectedMeetingAttendees={[]}
-          datedMeetingsWithAttendees={datedMeetingsWithAttendees}
-          selectedDate={selectedDate}
-          setDatedMeetingsWithAttendees={setDatedMeetingsWithAttendees}
-          isOnMeetingsPage={isOnMeetingsPage}
-          isOnStudentsPage={false}
-          studentId={0}
-        />
-        <MeetingList
-          meetings={meetings}
-          // setMeetings={setMeetings}
-          selectedDate={selectedDate}
-          setSelectedDate={setSelectedDate}
-          // getDatedMeetings={getDatedMeetings}
-          selectedMeetings={selectedMeetings}
-          students={students}
-          setSelectedMeetings={setSelectedMeetings}
-          datedMeetingsWithAttendees={datedMeetingsWithAttendees}
-          isOnMeetingsPage={isOnMeetingsPage}
-          isOnStudentsPage={false}
-          studentId={0}
-          />
+        {isDataLoading ? (
+          <>
+            <div className="flex-1">
+              <LoadingSpinner 
+                variant="card" 
+                message="Loading meeting form..." 
+                height="300px"
+              />
+            </div>
+            <div className="flex-1">
+              <LoadingSpinner 
+                variant="card" 
+                message="Loading meetings..." 
+                height="300px"
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <MeetingForm
+              meetings={meetings}
+              setAllMeetings={setAllMeetings}
+              setMeetings={setMeetings}
+              students={students || []}
+              myDatedMeetings={myDatedMeetings}
+              setMyDatedMeetings={setMyDatedMeetings}
+              selectedMeetings={selectedMeetings}
+              setSelectedMeetings={setSelectedMeetings}
+              selectedMeetingAttendees={[]}
+              datedMeetingsWithAttendees={datedMeetingsWithAttendees}
+              selectedDate={selectedDate}
+              setDatedMeetingsWithAttendees={setDatedMeetingsWithAttendees}
+              isOnMeetingsPage={isOnMeetingsPage}
+              isOnStudentsPage={false}
+              studentId={0}
+            />
+            <MeetingList
+              meetings={meetings}
+              // setMeetings={setMeetings}
+              selectedDate={selectedDate}
+              setSelectedDate={setSelectedDate}
+              // getDatedMeetings={getDatedMeetings}
+              selectedMeetings={selectedMeetings}
+              students={students || []}
+              setSelectedMeetings={setSelectedMeetings}
+              datedMeetingsWithAttendees={datedMeetingsWithAttendees}
+              isOnMeetingsPage={isOnMeetingsPage}
+              isOnStudentsPage={false}
+              studentId={0}
+              />
+          </>
+        )}
         </div>
       <Students isOnMeetingsPage={isOnMeetingsPage} />
     </div>

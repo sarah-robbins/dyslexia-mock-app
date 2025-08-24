@@ -30,6 +30,7 @@ import CheckIcon from "@mui/icons-material/Check";
 // import { Button } from "primereact/button";
 import Button from "@mui/material/Button";
 import AddUserForm from "../AddUserForm";
+import LoadingSpinner from "../LoadingSpinner";
 
 const Users: React.FC = () => {
   const [open, setOpen] = React.useState(false);
@@ -51,8 +52,8 @@ const Users: React.FC = () => {
 
   const [users, setUsers] = useState<User[]>([]);
   // Use the new getCurrentUser and settings approach
-  const { data: currentUser } = api.users.getCurrentUser.useQuery();
-  const { data: allSettings } = api.settings.getAllSettings.useQuery();
+  const { data: currentUser, isLoading: isLoadingUser, error: userError } = api.users.getCurrentUser.useQuery();
+  const { data: allSettings, isLoading: isLoadingSettings, error: settingsError } = api.settings.getAllSettings.useQuery();
   const appSettings = allSettings?.[0]; // Get first settings record
   const [filters, setFilters] = useState<DataTableFilterMeta>({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -66,15 +67,13 @@ const Users: React.FC = () => {
   });
   const [globalFilterValue, setGlobalFilterValue] = useState<string>("");
 
-  const getUsersForRole = api.users.getUsersForRole.useQuery(undefined, {
+  const { data: myUsers, isLoading: isLoadingUsersForRole, error: usersForRoleError } = api.users.getUsersForRole.useQuery(undefined, {
     enabled: !!currentUser // Only fetch when user is loaded
   }) as {
     data: User[];
     isLoading: boolean;
-    isError: boolean;
-    isSuccess: boolean;
+    error: any;
   };
-  const myUsers = getUsersForRole.data;
 
   const processSchool = (
     school: string | string[] | null | undefined
@@ -688,6 +687,38 @@ const Users: React.FC = () => {
   const updateUserMutation = api.users.updateUser.useMutation();
   const createUserMutation = api.users.createUser.useMutation();
 
+  // Loading and error states
+  const isInitialLoading = isLoadingUser;
+  const isDataLoading = isLoadingUsersForRole || isLoadingSettings;
+  const hasErrors = userError || usersForRoleError || settingsError;
+
+  // Show initial loading screen while user data loads
+  if (isInitialLoading) {
+    return (
+      <div className="flex flex-column justify-content-center gap-4">
+        <LoadingSpinner 
+          variant="card" 
+          message="Loading user session..." 
+          height="400px"
+        />
+      </div>
+    );
+  }
+
+  // Show error state if any critical errors occurred
+  if (hasErrors) {
+    return (
+      <div className="flex flex-column justify-content-center gap-4">
+        <div className="p-4 border-round bg-red-50 border-red-200">
+          <h3 className="text-red-800 mt-0">Error Loading Data</h3>
+          <p className="text-red-600 mb-0">
+            {userError?.message || usersForRoleError?.message || settingsError?.message || 'An unexpected error occurred while loading data.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <AddUserForm
@@ -706,19 +737,27 @@ const Users: React.FC = () => {
         <div className="meeting-list-name-select flex justify-content-between align-items-center gap-4">
           <h3>Users</h3>
         </div>
-        <DataTable
-          value={users}
-          editMode="row"
-          editingRows={editingRows}
-          onRowEditComplete={onRowEditComplete}
-          dataKey="id"
-          key="id"
-          stripedRows
-          removableSort
-          rowClassName={newRowClass}
-          tableStyle={{ minWidth: "60rem" }}
-          filters={filters}
-          globalFilterFields={[
+        {isDataLoading ? (
+          <LoadingSpinner 
+            variant="card" 
+            message="Loading users data..." 
+            height="500px"
+            className="w-full"
+          />
+        ) : (
+          <DataTable
+            value={users || []}
+            editMode="row"
+            editingRows={editingRows}
+            onRowEditComplete={onRowEditComplete}
+            dataKey="id"
+            key="id"
+            stripedRows
+            removableSort
+            rowClassName={newRowClass}
+            tableStyle={{ minWidth: "60rem" }}
+            filters={filters}
+            globalFilterFields={[
             "first_name",
             "last_name",
             "school",
@@ -787,7 +826,8 @@ const Users: React.FC = () => {
             headerStyle={{ width: "1%", minWidth: "2rem" }}
             bodyStyle={{ textAlign: "center" }}
           ></Column>
-        </DataTable>
+          </DataTable>
+        )}
       </Card>
     </>
   );

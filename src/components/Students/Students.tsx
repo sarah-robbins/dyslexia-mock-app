@@ -49,6 +49,7 @@ import { Skeleton } from "primereact/skeleton";
 import MeetingForm from "@/components/Meetings/MeetingForm/MeetingForm";
 import MeetingList from "@/components/Meetings/MeetingList/MeetingList";
 import AddStudentForm from "../AddStudentForm";
+import LoadingSpinner from "../LoadingSpinner";
 // import jsPDF from "jspdf";
 // import autoTable from "jspdf-autotable";
 import {
@@ -81,7 +82,7 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
     hiddenOnMeetingsPage = "flex";
   }
   // Use the new getCurrentUser approach
-  const { data: currentUser } = api.users.getCurrentUser.useQuery();
+  const { data: currentUser, isLoading: isLoadingUser, error: userError } = api.users.getCurrentUser.useQuery();
   const sessionData = currentUser;
   const [open, setOpen] = React.useState(false);
   const handleOpen = () => setOpen(true);
@@ -97,7 +98,7 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
     }
   }, [runSuccessToast]);
 
-  const getAllStudents = api.students.getAllStudents.useQuery(undefined, {
+  const { data: getAllStudentsData, isLoading: isLoadingAllStudents, error: allStudentsError } = api.students.getAllStudents.useQuery(undefined, {
     enabled: !!currentUser // Only fetch when user is loaded
   });
   const [students, setStudents] = useState<Student[]>([]);
@@ -107,7 +108,7 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
   >(undefined);
   const toast = useRef<Toast>(null);
   // Get app settings from the settings API
-  const { data: allSettings } = api.settings.getAllSettings.useQuery();
+  const { data: allSettings, isLoading: isLoadingSettings, error: settingsError } = api.settings.getAllSettings.useQuery();
   const appSettings = allSettings?.[0]; // Get first settings record
   const [filters, setFilters] = useState<DataTableFilterMeta>({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -157,22 +158,28 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
     useState<FormValues>();
   const [interventionDate, setInterventionDate] = useState<Dayjs>();
 
-  const { data: getStudentsForTutor } =
+  const { data: getStudentsForTutor, isLoading: isLoadingStudentsForTutor, error: studentsForTutorError } =
     api.students.getStudentsForTutor.useQuery(sessionData?.userId || 0, {
       enabled: !!currentUser && !!sessionData?.userId // Only fetch when user is loaded
     }) as {
       data: Student[];
+      isLoading: boolean;
+      error: any;
     };
-  const { data: getStudentsForRole } =
+  const { data: getStudentsForRole, isLoading: isLoadingStudentsForRole, error: studentsForRoleError } =
     api.students.getStudentsForRole.useQuery(undefined, {
       enabled: !!currentUser // Only fetch when user is loaded
     }) as {
       data: Student[];
+      isLoading: boolean;
+      error: any;
     };  
-  const { data: myUsers } = api.users.getUsersForRole.useQuery(undefined, {
+  const { data: myUsers, isLoading: isLoadingUsers, error: usersError } = api.users.getUsersForRole.useQuery(undefined, {
       enabled: !!currentUser // Only fetch when user is loaded
     }) as {
       data: User[];
+      isLoading: boolean;
+      error: any;
     };  
   const dateToQuery =
     selectedDate && dayjs.isDayjs(selectedDate) ? selectedDate : dayjs();
@@ -1467,7 +1474,7 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
   };
   const header = renderHeader();
 
-  if (!getAllStudents.data)
+  if (!getAllStudentsData)
     return (
       <div className="flex w-full h-full">
         <CircularProgress
@@ -1549,6 +1556,38 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
     </>
   );
   
+  // Loading and error states
+  const isInitialLoading = isLoadingUser;
+  const isDataLoading = isLoadingAllStudents || isLoadingStudentsForTutor || isLoadingStudentsForRole || isLoadingUsers || isLoadingSettings;
+  const hasErrors = userError || allStudentsError || studentsForTutorError || studentsForRoleError || usersError || settingsError;
+
+  // Show initial loading screen while user data loads
+  if (isInitialLoading) {
+    return (
+      <div className="flex flex-column justify-content-center gap-4">
+        <LoadingSpinner 
+          variant="card" 
+          message="Loading user session..." 
+          height="400px"
+        />
+      </div>
+    );
+  }
+
+  // Show error state if any critical errors occurred
+  if (hasErrors) {
+    return (
+      <div className="flex flex-column justify-content-center gap-4">
+        <div className="p-4 border-round bg-red-50 border-red-200">
+          <h3 className="text-red-800 mt-0">Error Loading Data</h3>
+          <p className="text-red-600 mb-0">
+            {userError?.message || allStudentsError?.message || studentsForTutorError?.message || studentsForRoleError?.message || usersError?.message || settingsError?.message || 'An unexpected error occurred while loading data.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <AddStudentForm
@@ -1570,43 +1609,51 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
           <h3>Students</h3>
         </div>
 
-        <DataTable
-          // key={students.map(s => `${s.id || 0}-${s.tutorId || 'unassigned'}`).join('-')}
-          className="students-table"
-          ref={dt}
-          value={students}
-          editMode="row"
-          editingRows={editingRows}
-          onRowEditComplete={onRowEditComplete}
-          expandedRows={expandedRows}
-          onRowToggle={(e) => setExpandedRows(e.data)}
-          rowExpansionTemplate={rowExpansionTemplate}
-          dataKey="id"
-          stripedRows
-          removableSort
-          rowClassName={newRowClass}
-          // onRowSelect={rowSelected}
-          tableStyle={{ minWidth: "60rem" }}
-          filters={filters}
-          globalFilterFields={[
-            "first_name",
-            "last_name",
-            "school",
-            "grade",
-            "home_room_teacher",
-            "intervention_program",
-            "tutorFullName",
-            "date_intervention_began",
-            "calculateTotalMeetings",
-            "services",
-          ]}
-          header={header}
-          emptyMessage="No students match your search."
-          showGridlines
-          paginator
-          rows={10}
-          rowsPerPageOptions={[5, 10, 25, 50]}
-        >
+        {isDataLoading ? (
+          <LoadingSpinner 
+            variant="card" 
+            message="Loading students data..." 
+            height="500px"
+            className="w-full"
+          />
+        ) : (
+          <DataTable
+            // key={students.map(s => `${s.id || 0}-${s.tutorId || 'unassigned'}`).join('-')}
+            className="students-table"
+            ref={dt}
+            value={students || []}
+            editMode="row"
+            editingRows={editingRows}
+            onRowEditComplete={onRowEditComplete}
+            expandedRows={expandedRows}
+            onRowToggle={(e) => setExpandedRows(e.data)}
+            rowExpansionTemplate={rowExpansionTemplate}
+            dataKey="id"
+            stripedRows
+            removableSort
+            rowClassName={newRowClass}
+            // onRowSelect={rowSelected}
+            tableStyle={{ minWidth: "60rem" }}
+            filters={filters}
+            globalFilterFields={[
+              "first_name",
+              "last_name",
+              "school",
+              "grade",
+              "home_room_teacher",
+              "intervention_program",
+              "tutorFullName",
+              "date_intervention_began",
+              "calculateTotalMeetings",
+              "services",
+            ]}
+            header={header}
+            emptyMessage="No students match your search."
+            showGridlines
+            paginator
+            rows={10}
+            rowsPerPageOptions={[5, 10, 25, 50]}
+          >
           <Column
             expander={allowExpansion}
             style={{ width: "5rem" }}
@@ -1683,7 +1730,8 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
               bodyStyle={{ textAlign: "center" }}
             ></Column>
           )}
-        </DataTable>
+          </DataTable>
+        )}
       </Card>
     </>
   );

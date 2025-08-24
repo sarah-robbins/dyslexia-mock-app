@@ -1,6 +1,20 @@
 import { type JsonValue } from '@prisma/client/runtime/library';
 import { type Dayjs } from 'dayjs';
-import { type Session } from 'next-auth';
+
+// Custom session type to replace NextAuth Session
+export type Session = {
+  user: {
+    userId: number;
+    role?: string | null;
+    school?: string | null;
+    view?: string | null;
+    email?: string | null;
+    name?: string;
+    phone?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+  };
+};
 
 export type Student = {
   id?: number;

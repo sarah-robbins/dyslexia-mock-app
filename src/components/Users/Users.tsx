@@ -66,7 +66,9 @@ const Users: React.FC = () => {
   });
   const [globalFilterValue, setGlobalFilterValue] = useState<string>("");
 
-  const getUsersForRole = api.users.getUsersForRole.useQuery() as {
+  const getUsersForRole = api.users.getUsersForRole.useQuery(undefined, {
+    enabled: !!currentUser // Only fetch when user is loaded
+  }) as {
     data: User[];
     isLoading: boolean;
     isError: boolean;

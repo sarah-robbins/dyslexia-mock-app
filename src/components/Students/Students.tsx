@@ -97,7 +97,9 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
     }
   }, [runSuccessToast]);
 
-  const getAllStudents = api.students.getAllStudents.useQuery();
+  const getAllStudents = api.students.getAllStudents.useQuery(undefined, {
+    enabled: !!currentUser // Only fetch when user is loaded
+  });
   const [students, setStudents] = useState<Student[]>([]);
   const dt = useRef<DataTable<Student[]>>(null);
   const [expandedRows, setExpandedRows] = useState<
@@ -156,24 +158,34 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
   const [interventionDate, setInterventionDate] = useState<Dayjs>();
 
   const { data: getStudentsForTutor } =
-    api.students.getStudentsForTutor.useQuery(sessionData?.userId || 0) as {
+    api.students.getStudentsForTutor.useQuery(sessionData?.userId || 0, {
+      enabled: !!currentUser && !!sessionData?.userId // Only fetch when user is loaded
+    }) as {
       data: Student[];
     };
   const { data: getStudentsForRole } =
-    api.students.getStudentsForRole.useQuery() as {
+    api.students.getStudentsForRole.useQuery(undefined, {
+      enabled: !!currentUser // Only fetch when user is loaded
+    }) as {
       data: Student[];
     };  
-  const { data: myUsers } = api.users.getUsersForRole.useQuery() as {
+  const { data: myUsers } = api.users.getUsersForRole.useQuery(undefined, {
+      enabled: !!currentUser // Only fetch when user is loaded
+    }) as {
       data: User[];
     };  
   const dateToQuery =
     selectedDate && dayjs.isDayjs(selectedDate) ? selectedDate : dayjs();
   const { data: getDatedMeetings } =
-    api.meetings.getMeetingsByRoleAndDate.useQuery(dateToQuery.toDate()) as {
+    api.meetings.getMeetingsByRoleAndDate.useQuery(dateToQuery.toDate(), {
+      enabled: !!currentUser // Only fetch when user is loaded
+    }) as {
       data: MeetingWithAttendees[];
     };
   const { data: roleBasedMeetings } =
-    api.meetings.getMeetingsForRole.useQuery();
+    api.meetings.getMeetingsForRole.useQuery(undefined, {
+      enabled: !!currentUser // Only fetch when user is loaded
+    });
 
 
   useEffect(() => {

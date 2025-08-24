@@ -13,7 +13,9 @@ import Students from "../Students/Students";
 
 // Initialization
 const Meetings = () => {
-  const tutorId = 1;
+  // Get current user data immediately
+  const { data: currentUser } = api.users.getCurrentUser.useQuery();
+  const tutorId = currentUser?.userId || 1; // Fallback to 1 if no user found
   // State Management
   const [meetings, setMeetings] = useState<MeetingWithAttendees[]>([]);
   const [allMeetings, setAllMeetings] = useState<MeetingWithAttendees[]>([]);
@@ -36,16 +38,22 @@ const Meetings = () => {
 
   const dateToQuery = selectedDate && dayjs.isDayjs(selectedDate) ? selectedDate : dayjs();
 
-  // API Calls
+  // API Calls - only make calls when we have a valid tutorId
   const { data: getAllMeetings } = api.meetings.getMeetingsByTutorId.useQuery({
     tutor_id: tutorId
+  }, {
+    enabled: !!tutorId && !!currentUser // Only fetch when user is loaded
   });
 
-  const {data: getDatedMeetings} = api.meetings.getMeetingsByRoleAndDate.useQuery(dateToQuery.toDate()) as {
+  const {data: getDatedMeetings} = api.meetings.getMeetingsByRoleAndDate.useQuery(dateToQuery.toDate(), {
+    enabled: !!currentUser // Only fetch when user is loaded
+  }) as {
     data: MeetingWithAttendees[];
   };
 
-  const { data: myStudents } = api.students.getStudentsForRole.useQuery() as {
+  const { data: myStudents } = api.students.getStudentsForRole.useQuery(undefined, {
+    enabled: !!currentUser // Only fetch when user is loaded
+  }) as {
     data: Student[];
   };
 

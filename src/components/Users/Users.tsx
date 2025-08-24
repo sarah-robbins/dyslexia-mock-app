@@ -69,11 +69,7 @@ const Users: React.FC = () => {
 
   const { data: myUsers, isLoading: isLoadingUsersForRole, error: usersForRoleError } = api.users.getUsersForRole.useQuery(undefined, {
     enabled: !!currentUser // Only fetch when user is loaded
-  }) as {
-    data: User[];
-    isLoading: boolean;
-    error: any;
-  };
+  });
 
   const processSchool = (
     school: string | string[] | null | undefined
@@ -690,7 +686,7 @@ const Users: React.FC = () => {
   // Loading and error states
   const isInitialLoading = isLoadingUser;
   const isDataLoading = isLoadingUsersForRole || isLoadingSettings;
-  const hasErrors = userError || usersForRoleError || settingsError;
+  const hasErrors = Boolean(userError || usersForRoleError || settingsError);
 
   // Show initial loading screen while user data loads
   if (isInitialLoading) {
@@ -712,7 +708,19 @@ const Users: React.FC = () => {
         <div className="p-4 border-round bg-red-50 border-red-200">
           <h3 className="text-red-800 mt-0">Error Loading Data</h3>
           <p className="text-red-600 mb-0">
-            {userError?.message || usersForRoleError?.message || settingsError?.message || 'An unexpected error occurred while loading data.'}
+            {(() => {
+              const getErrorMessage = (error: unknown): string | null => {
+                if (error && typeof error === 'object' && 'message' in error && typeof (error as { message: unknown }).message === 'string') {
+                  return (error as { message: string }).message;
+                }
+                return null;
+              };
+              
+              return getErrorMessage(userError) || 
+                     getErrorMessage(usersForRoleError) || 
+                     getErrorMessage(settingsError) || 
+                     'An unexpected error occurred while loading data.';
+            })()}
           </p>
         </div>
       </div>

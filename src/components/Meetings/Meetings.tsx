@@ -88,7 +88,7 @@ const Meetings = () => {
   // Loading and error states
   const isInitialLoading = isLoadingUser;
   const isDataLoading = isLoadingAllMeetings || isLoadingDatedMeetings || isLoadingStudents;
-  const hasErrors = userError || allMeetingsError || datedMeetingsError || studentsError;
+  const hasErrors = Boolean(userError || allMeetingsError || datedMeetingsError || studentsError);
 
   // Show initial loading screen while user data loads
   if (isInitialLoading) {
@@ -110,7 +110,20 @@ const Meetings = () => {
         <div className="p-4 border-round bg-red-50 border-red-200">
           <h3 className="text-red-800 mt-0">Error Loading Data</h3>
           <p className="text-red-600 mb-0">
-            {userError?.message || allMeetingsError?.message || datedMeetingsError?.message || studentsError?.message || 'An unexpected error occurred while loading data.'}
+            {(() => {
+              const getErrorMessage = (error: unknown): string | null => {
+                if (error && typeof error === 'object' && 'message' in error && typeof (error as { message: unknown }).message === 'string') {
+                  return (error as { message: string }).message;
+                }
+                return null;
+              };
+              
+              return getErrorMessage(userError) || 
+                     getErrorMessage(allMeetingsError) || 
+                     getErrorMessage(datedMeetingsError) || 
+                     getErrorMessage(studentsError) || 
+                     'An unexpected error occurred while loading data.';
+            })()}
           </p>
         </div>
       </div>

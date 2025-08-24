@@ -38,7 +38,7 @@ export type Student = {
   last_edited?: Dayjs | Date | null;
   created_at?: Dayjs | Date | null;
   schedule?: JsonValue | null;
-  Users?: User;
+  Users?: User | null;
   MeetingAttendees?: MeetingAttendees[];
   tutorId?: number | null;
   tutorFullName?: string;
@@ -77,7 +77,7 @@ export type FormValues = {
 export type Meeting = {
   id?: number;
   start: Date | Dayjs | null;
-  end: Date | Dayjs | null;
+  end?: Date | Dayjs | null;
   program?: string | null;
   level_lesson?: string | null;
   meeting_notes?: string | null;
@@ -130,7 +130,7 @@ export type User = {
   last_name?: string;
   school?: string | null;
   email?: string;
-  phone?: string;
+  phone?: string | null;
   role?: string | null;
   super_admin_role?: boolean | null;
   picture?: string | null;

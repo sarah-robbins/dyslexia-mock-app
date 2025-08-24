@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   DataTable,
@@ -52,12 +53,10 @@ import AddStudentForm from "../AddStudentForm";
 import LoadingSpinner from "../LoadingSpinner";
 // import jsPDF from "jspdf";
 // import autoTable from "jspdf-autotable";
-import {
-  type WorkBook,
-  type WorkSheet,
-  utils as XLSXUtils,
-  write as XLSXWrite,
-} from "xlsx";
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+import * as XLSX from "xlsx";
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+import type { WorkBook, WorkSheet } from "xlsx";
 import { TableRows, TextSnippet } from "@mui/icons-material";
 
 interface TutorOption {
@@ -161,26 +160,14 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
   const { data: getStudentsForTutor, isLoading: isLoadingStudentsForTutor, error: studentsForTutorError } =
     api.students.getStudentsForTutor.useQuery(sessionData?.userId || 0, {
       enabled: !!currentUser && !!sessionData?.userId // Only fetch when user is loaded
-    }) as {
-      data: Student[];
-      isLoading: boolean;
-      error: any;
-    };
+    });
   const { data: getStudentsForRole, isLoading: isLoadingStudentsForRole, error: studentsForRoleError } =
     api.students.getStudentsForRole.useQuery(undefined, {
       enabled: !!currentUser // Only fetch when user is loaded
-    }) as {
-      data: Student[];
-      isLoading: boolean;
-      error: any;
-    };  
+    });  
   const { data: myUsers, isLoading: isLoadingUsers, error: usersError } = api.users.getUsersForRole.useQuery(undefined, {
       enabled: !!currentUser // Only fetch when user is loaded
-    }) as {
-      data: User[];
-      isLoading: boolean;
-      error: any;
-    };  
+    });  
   const dateToQuery =
     selectedDate && dayjs.isDayjs(selectedDate) ? selectedDate : dayjs();
   const { data: getDatedMeetings } =
@@ -197,9 +184,17 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
 
   useEffect(() => {
     if (isOnMeetingsPage) {
-      setMyStudents(getStudentsForTutor);
+      if (getStudentsForTutor) {
+        setMyStudents(getStudentsForTutor);
+      } else {
+        setMyStudents([]);
+      }
     } else {
-      setMyStudents(getStudentsForRole);
+      if (getStudentsForRole) {
+        setMyStudents(getStudentsForRole);
+      } else {
+        setMyStudents([]);
+      }
     }  
   }, [
     getStudentsForRole,
@@ -364,7 +359,7 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
   useEffect(() => {
     if (myUsers) {
       const formattedData = myUsers.map((user) => ({
-        label: `${user.first_name as string} ${user.last_name as string}`,
+        label: `${user.first_name || ''} ${user.last_name || ''}`,
         value: user.id,
       }));
       setFormattedTutors(formattedData);
@@ -1374,7 +1369,7 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
   const exportExcel = (): Promise<void> => {
     return new Promise((resolve, reject) => {
       try {
-        const worksheet: WorkSheet = XLSXUtils.json_to_sheet(
+        const worksheet: WorkSheet = XLSX.utils.json_to_sheet(
           filteredStudents.map((student) => {
             const result: Record<string, string> = {};
             exportColumns.forEach((col) => {
@@ -1389,7 +1384,7 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
           Sheets: { data: worksheet },
           SheetNames: ["data"],
         };
-        const excelBuffer: ArrayBuffer = XLSXWrite(workbook, {
+        const excelBuffer: ArrayBuffer = XLSX.write(workbook, {
           bookType: "xlsx",
           type: "array",
         }) as ArrayBuffer;
@@ -1559,7 +1554,7 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
   // Loading and error states
   const isInitialLoading = isLoadingUser;
   const isDataLoading = isLoadingAllStudents || isLoadingStudentsForTutor || isLoadingStudentsForRole || isLoadingUsers || isLoadingSettings;
-  const hasErrors = userError || allStudentsError || studentsForTutorError || studentsForRoleError || usersError || settingsError;
+  const hasErrors = Boolean(userError || allStudentsError || studentsForTutorError || studentsForRoleError || usersError || settingsError);
 
   // Show initial loading screen while user data loads
   if (isInitialLoading) {
@@ -1581,7 +1576,22 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
         <div className="p-4 border-round bg-red-50 border-red-200">
           <h3 className="text-red-800 mt-0">Error Loading Data</h3>
           <p className="text-red-600 mb-0">
-            {userError?.message || allStudentsError?.message || studentsForTutorError?.message || studentsForRoleError?.message || usersError?.message || settingsError?.message || 'An unexpected error occurred while loading data.'}
+            {(() => {
+              const getErrorMessage = (error: unknown): string | null => {
+                if (error && typeof error === 'object' && 'message' in error && typeof (error as { message: unknown }).message === 'string') {
+                  return (error as { message: string }).message;
+                }
+                return null;
+              };
+              
+              return getErrorMessage(userError) || 
+                     getErrorMessage(allStudentsError) || 
+                     getErrorMessage(studentsForTutorError) || 
+                     getErrorMessage(studentsForRoleError) || 
+                     getErrorMessage(usersError) || 
+                     getErrorMessage(settingsError) || 
+                     'An unexpected error occurred while loading data.';
+            })()}
           </p>
         </div>
       </div>

@@ -21,25 +21,31 @@ const createInnerTRPCContext = async (opts: CreateContextOptions) => {
   let session = null;
   
   if (opts.userId) {
-    // Fetch user data from database
-    const user = await prisma.users.findUnique({
-      where: { id: opts.userId }
-    });
-    
-    if (user) {
-      session = {
-        user: {
-          userId: user.id,
-          role: user.role,
-          school: user.school,
-          view: user.view,
-          email: user.email,
-          name: `${user.first_name} ${user.last_name}`,
-          phone: user.phone, // Add this line
-          first_name: user.first_name, // Add this if needed
-          last_name: user.last_name // Add this if needed
-        }
-      };
+    try {
+      // Fetch user data from database
+      const user = await prisma.users.findUnique({
+        where: { id: opts.userId }
+      });
+      
+      if (user) {
+        session = {
+          user: {
+            userId: user.id,
+            role: user.role,
+            school: user.school,
+            view: user.view,
+            email: user.email,
+            name: `${user.first_name} ${user.last_name}`,
+            phone: user.phone,
+            first_name: user.first_name,
+            last_name: user.last_name
+          }
+        };
+      } else {
+        console.warn(`User with id ${opts.userId} not found in database`);
+      }
+    } catch (error) {
+      console.error('Error fetching user from database:', error);
     }
   }
   
@@ -54,9 +60,33 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
   const userId = opts.req.headers['x-demo-user-id'] || opts.req.query.userId;
   let parsedUserId = userId ? parseInt(userId as string) : undefined;
   
-  // TEMPORARY: Hardcode user ID for testing
+  // TEMPORARY: Fallback for demo purposes
   if (!parsedUserId) {
-    parsedUserId = 1; // Change this to a valid user ID from your database
+    try {
+      // Try to find the first available user in the database
+      const firstUser = await prisma.users.findFirst({
+        orderBy: { id: 'asc' }
+      });
+      
+      if (firstUser) {
+        parsedUserId = firstUser.id;
+        console.log('tRPC Context - using first available user:', parsedUserId);
+      } else {
+        console.warn('tRPC Context - No users found in database');
+        // Return context without session if no users exist
+        return {
+          prisma,
+          session: null
+        };
+      }
+    } catch (error) {
+      console.error('tRPC Context - Error finding fallback user:', error);
+      // Return context without session on error
+      return {
+        prisma,
+        session: null
+      };
+    }
   }
   
   console.log('tRPC Context - using userId:', parsedUserId);

@@ -22,7 +22,6 @@ import type {
   FormValues,
   MeetingAttendees,
   MeetingWithAttendees,
-  Meeting,
 } from "@/types";
 import { InputText } from "primereact/inputtext";
 import { Dropdown, type DropdownChangeEvent } from "primereact/dropdown";
@@ -130,8 +129,10 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
   });
   const [globalFilterValue, setGlobalFilterValue] = useState<string>("");
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [meetings, setMeetings] = useState<MeetingWithAttendees[]>([]);
   const [allMeetings, setAllMeetings] = useState<MeetingWithAttendees[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedDate, setSelectedDate] = useState<Dayjs>(dayjs());
   const [studentDates, setStudentDates]  = useState<{ [studentId: number]: Dayjs }>({});
   const [selectedMeetings, setSelectedMeetings] = useState<

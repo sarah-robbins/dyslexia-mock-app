@@ -17,6 +17,7 @@ const Meetings = () => {
   // State Management
   const [meetings, setMeetings] = useState<MeetingWithAttendees[]>([]);
   const [allMeetings, setAllMeetings] = useState<MeetingWithAttendees[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [date, setDate] = useState<Dayjs | null>(dayjs());
   const [selectedDate, setSelectedDate] = useState<Dayjs>(dayjs());
   const [selectedMeetings, setSelectedMeetings] = useState<MeetingWithAttendees[]>([]);

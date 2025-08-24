@@ -1,16 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { api } from '@/utils/api';
 import { Dropdown } from 'primereact/dropdown';
-import { Button } from 'primereact/button';
-
-interface User {
-  id: number;
-  first_name: string;
-  last_name: string;
-  role: string;
-  school: string;
-  view: string;
-}
 
 interface UserSelectorProps {
   onUserSelect: (userId: number) => void;
@@ -39,7 +29,7 @@ const UserSelector: React.FC<UserSelectorProps> = ({ onUserSelect, selectedUserI
       <Dropdown
         value={selectedUser}
         options={userOptions}
-        onChange={(e) => handleUserChange(e.value)}
+        onChange={(e) => handleUserChange(e.value as number)}
         placeholder="Select a user to demo as..."
         loading={isLoading}
         className="w-full"

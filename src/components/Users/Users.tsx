@@ -15,7 +15,7 @@ import { api } from "@/utils/api";
 import { Toast } from "primereact/toast";
 import { Card } from "primereact/card";
 
-import type { User, customSession } from "@/types";
+import type { User } from "@/types";
 import { InputText } from "primereact/inputtext";
 import { Dropdown, type DropdownChangeEvent } from "primereact/dropdown";
 import {
@@ -167,11 +167,9 @@ const Users: React.FC = () => {
     }
 
     // Handle saving the edited data
-    let updatedUsers = users;
-
     if (newData.id === undefined || e.data.id < 0) {
       // Handling new row
-      updatedUsers = users.map((user) =>
+      users.map((user) =>
         user.id === -1 ? ({ ...e.data, id: 0 } as User) : user
       );
 
@@ -229,7 +227,7 @@ const Users: React.FC = () => {
       });
     } else {
       // Handling existing row update
-      updatedUsers = users.map((user) =>
+      users.map((user) =>
         user.id === e.data.id ? ({ ...e.data } as User) : user
       );
 

@@ -20,7 +20,6 @@ import type {
   User,
   Student,
   FormValues,
-  customSession,
   MeetingAttendees,
   MeetingWithAttendees,
   Meeting,
@@ -226,44 +225,44 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
     return isStudentValid;
   };
 
-  const convertMeetings = (meetings: Meeting[]): MeetingWithAttendees[] => {
-    return meetings.map((meeting) => {
-      let start, end, edited_on, recorded_on;
+  // const convertMeetings = (meetings: Meeting[]): MeetingWithAttendees[] => {
+  //   return meetings.map((meeting) => {
+  //     let start, end, edited_on, recorded_on;
 
-      if (meeting.start && meeting.start instanceof Date) {
-        start = dayjs(meeting.start);
-      } else {
-        start = meeting.start;
-      }
+  //     if (meeting.start && meeting.start instanceof Date) {
+  //       start = dayjs(meeting.start);
+  //     } else {
+  //       start = meeting.start;
+  //     }
 
-      if (meeting.end && meeting.end instanceof Date) {
-        end = dayjs(meeting.end);
-      } else {
-        end = meeting.end;
-      }
+  //     if (meeting.end && meeting.end instanceof Date) {
+  //       end = dayjs(meeting.end);
+  //     } else {
+  //       end = meeting.end;
+  //     }
 
-      if (meeting.edited_on && meeting.edited_on instanceof Date) {
-        edited_on = dayjs(meeting.edited_on);
-      } else {
-        edited_on = meeting.edited_on;
-      }
+  //     if (meeting.edited_on && meeting.edited_on instanceof Date) {
+  //       edited_on = dayjs(meeting.edited_on);
+  //     } else {
+  //       edited_on = meeting.edited_on;
+  //     }
 
-      if (meeting.recorded_on && meeting.recorded_on instanceof Date) {
-        recorded_on = dayjs(meeting.recorded_on);
-      } else {
-        recorded_on = meeting.recorded_on;
-      }
+  //     if (meeting.recorded_on && meeting.recorded_on instanceof Date) {
+  //       recorded_on = dayjs(meeting.recorded_on);
+  //     } else {
+  //       recorded_on = meeting.recorded_on;
+  //     }
 
-      return {
-        ...meeting,
-        start,
-        end,
-        edited_on,
-        recorded_on,
-        attendees: [],
-      };
-    });
-  };
+  //     return {
+  //       ...meeting,
+  //       start,
+  //       end,
+  //       edited_on,
+  //       recorded_on,
+  //       attendees: [],
+  //     };
+  //   });
+  // };
 
   useEffect(() => {
     if (roleBasedMeetings) {
@@ -794,7 +793,7 @@ const Students: React.FC<Props> = ({ isOnMeetingsPage }) => {
       }
     });
     setStudentDates(initialDates);
-  }, [students, selectedDate]);
+  }, [students, selectedDate, studentDates]);
 
   const handleStudentDateChange = useCallback((date: Dayjs, studentId: number) => {
     setStudentDates((prevDates: { [key: number]: Dayjs }) => ({

@@ -24,7 +24,7 @@ const Home: NextPage = () => {
 
   const enterDashboard = () => {
     if (selectedUserId) {
-      router.push('/dashboard');
+      void router.push('/dashboard');
     }
   };
 
